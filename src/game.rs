@@ -1,10 +1,10 @@
 #![allow(clippy::too_many_arguments)]
-
+//uses the Bevy and Serde libraries.
 use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};//serializing and deserializing data
 
 use crate::{GameChange, GameState, MainMenuInfo, BACKGROUND_COLOR, WINDOW_HEIGHT, WINDOW_WIDTH};
-
+//Defining UI 
 const BOARD_COLOR: Color = Color::rgb(1.0, 1.0, 1.0);
 const BOARD_SCALE: Vec2 = Vec2::new(1.0, 0.9);
 const HOLE_PADDING: f32 = 0.9;
@@ -28,6 +28,7 @@ struct MaterialHandles {
 impl MaterialHandles {
     fn get_disk_material(&self, disk: Disk) -> Handle<ColorMaterial> {
         match disk {
+            //If the value is Disk::Red, it returns a clone of the red_disk field
             Disk::Red => self.red_disk.clone(),
             Disk::Blue => self.blue_disk.clone(),
         }
@@ -46,19 +47,23 @@ enum GhostDisk {
     Red,
     Blue,
 }
-
+//This enum is used to define the current turn of the game, 
+//and it could be used to switch the turn between the two players, Red and Blue.
 #[derive(Resource, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 pub enum Turn {
     Red,
     Blue,
 }
-
+//This implementation allows the Turn enum to be printed to the console or in any other place,
+// where the std::fmt::Display trait is used.
 impl std::fmt::Display for Turn {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
             "{}",
             match self {
+                //returns "Red" if the value of self is Turn::Red and 
+                //"Blue" if the value of self is Turn::Blue.
                 Turn::Red => "Red",
                 Turn::Blue => "Blue",
             }
@@ -67,6 +72,7 @@ impl std::fmt::Display for Turn {
 }
 
 // Some helpful functions for converting the Turn enum
+//method takes a mutable reference to self and changes the value of self
 impl Turn {
     fn next(&mut self) {
         *self = match self {
@@ -74,21 +80,21 @@ impl Turn {
             Turn::Blue => Turn::Red,
         }
     }
-
+//takes self as an argument and returns a Disk enum variant, 
     fn to_disk(self) -> Disk {
         match self {
             Turn::Red => Disk::Red,
             Turn::Blue => Disk::Blue,
         }
     }
-
+//method takes self as an argument and returns a GhostDisk enum variant
     fn to_ghost_disk(self) -> GhostDisk {
         match self {
             Turn::Red => GhostDisk::Red,
             Turn::Blue => GhostDisk::Blue,
         }
     }
-
+// method takes self as an argument and returns a Color variant
     fn to_color(self) -> Color {
         match self {
             Turn::Red => RED_DISK_COLOR,
@@ -97,7 +103,7 @@ impl Turn {
     }
 }
 
-// Used to stop click from menu propagating to game
+// Used to stop click from menu spreading to game
 #[derive(Resource)]
 struct SkipClick(bool);
 
@@ -114,7 +120,8 @@ enum Disk {
     Red,
     Blue,
 }
-
+//This enum is used to represent the disks that are dropped into the game board, 
+//It could be used to identify the disks on the board, and to change the color of the disks based on the current turn.
 impl Disk {
     fn to_turn(self) -> Turn {
         match self {
@@ -155,19 +162,23 @@ fn get_dimensions(board: &Board, padding: f32) -> Dimensions {
 
 // Add a new disk to the board
 fn draw_disk(
-    commands: &mut Commands,
-    mesh_handles: &MeshHandles,
-    material_handles: &MaterialHandles,
+    commands: &mut Commands,//Commands is used to schedule commands to be executed by the game engine.
+    mesh_handles: &MeshHandles,//used to render the disks in the game.
+    material_handles: &MaterialHandles,//are used to color the disks in the game.
     dims: &Dimensions,
-    col: i32,
+    col: i32,//i32 representing a column number on the game board.
     row: i32,
-    disk: Disk,
+    disk: Disk,//representing the color of the disk to be placed on the board.
 ) {
+    //calculates the position of the disk to be placed on the game board based on these values.
     let mut transform = get_disk_transform(dims, row, col);
 
-    // Keep it infront of the holes
+    // ensure that disks appear on top of each other(depth)
     transform.translation.z = 0.2;
 
+    //spawns an entity on the game board, 
+    //which is a 2D circle mesh with the material set to the color of the disk, 
+    //positioned at the location specified by the transform variable.
     commands.spawn((
         MaterialMesh2dBundle {
             mesh: mesh_handles.circle.clone().into(),
@@ -180,7 +191,7 @@ fn draw_disk(
 }
 
 // Add a new hole to the board (the holes are drawn as circles
-//      with the same color as the background, and the board is just a rectangle)
+// with the same color as the background, and the board is just a rectangle)
 fn draw_hole(
     commands: &mut Commands,
     mesh_handles: &MeshHandles,
@@ -221,18 +232,22 @@ struct Board {
     cols: i32,
     disks: Vec<Vec<Option<Disk>>>,
 }
-
+//This code creates an empty board of rows by cols dimensions. 
+//The disks variable is a 2D array of None values, which will be used to store the state of the disks on the game board. 
+//Each position in the array corresponds to a position on the game board and will be filled with either a Red or Blue value.
 impl Board {
     fn new(rows: i32, cols: i32) -> Self {
         let disks = vec![vec![None; rows as usize]; cols as usize];
         Self { rows, cols, disks }
     }
 
-    // Add a disk to the board, checks there is space for it and returns the row it was added to
+    // Add a disk to the board, checks there is space for it(col) and returns the row it was added to
+    //The method returns the position of the first None value, or None if no None value is found. 
+    //If a None value is found, it calculates the index of the element in the row array and assigns the value of disk to that position. 
     fn drop_disk(&mut self, col: i32, disk: Disk) -> Option<i32> {
         if (0..self.cols).contains(&col) {
             let row = &mut self.disks[col as usize];
-            if let Some(index) = row.iter().rev().position(|disk| disk.is_none()) {
+            if let Some(index) = row.iter().rev().position(|disk| disk.is_none()) {//method to find the first None value in the row array
                 let index = row.len() - index - 1;
                 row[index] = Some(disk);
                 return Some(index as i32);
@@ -258,10 +273,13 @@ impl Board {
             let mut col = col;
             let mut count = 1;
 
+//this loop looks for a sequence of 4 disks of the same color in a row, column or diagonal.
             for _ in 1..4 {
+                //values determine the direction of the loop
                 row += row_delta;
                 col += col_delta;
                 if (0..self.rows).contains(&row) && (0..self.cols).contains(&col) {
+                    //check the value at that position. 
                     match self.disks[col as usize][row as usize] {
                         Some(disk2) if disk2 == disk => count += 1,
                         _ => break,
@@ -295,7 +313,7 @@ impl Board {
 struct MoveHistory {
     moves: Vec<(i32, Turn)>,
 }
-
+//Implement game history
 impl MoveHistory {
     fn new() -> MoveHistory {
         MoveHistory { moves: Vec::new() }
@@ -318,8 +336,9 @@ pub struct GamePlugin;
 
 // Creating the plugin
 impl Plugin for GamePlugin {
+    //configure the systems and resources of the App.
     fn build(&self, app: &mut App) {
-        app.insert_resource(SkipClick(false))
+        app.insert_resource(SkipClick(false))//if the next mouse click event should be ignored.
             .insert_resource(Turn::Red)
             .insert_resource(Board::new(6, 7))
             .insert_resource(MoveHistory::new())
@@ -336,7 +355,7 @@ impl Plugin for GamePlugin {
     }
 }
 
-// To prevent click in menu from propagating to game, called on enter
+// To prevent click in menu from spreading to game, called on enter
 fn skip_click(mut skip_click: ResMut<SkipClick>) {
     skip_click.0 = true;
 }
@@ -380,7 +399,7 @@ fn new_game(
 
     let mut blue_ghost_disk_color = BLUE_DISK_COLOR;
     blue_ghost_disk_color.set_a(0.3);
-    commands.spawn((
+    commands.spawn((//method to schedule the spawning of an entity with several components
         GhostDisk::Blue,
         InGame,
         MaterialMesh2dBundle {
@@ -391,6 +410,7 @@ fn new_game(
                 scale: Vec3::new(disk_dims.scale, disk_dims.scale, 0.0),
                 ..default()
             },
+            //The ghost disk is not visible initially and it only appears when the player hover over the board
             visibility: Visibility { is_visible: false },
             ..default()
         },
@@ -399,6 +419,7 @@ fn new_game(
     // Board
     commands.spawn((
         SpriteBundle {
+            //component is used to specify the position, rotation, and scale of the entity in the 3D space.
             transform: Transform {
                 translation: Vec3::new(
                     -WINDOW_WIDTH * ((1.0 - BOARD_SCALE.x) / 2.0),
@@ -412,6 +433,7 @@ fn new_game(
                 ),
                 ..default()
             },
+            //component defines the color of the sprite as BOARD_COLOR.
             sprite: Sprite {
                 color: BOARD_COLOR,
                 ..default()
