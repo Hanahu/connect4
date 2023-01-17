@@ -1,0 +1,1 @@
+{"board":{"rows":6,"cols":7,"disks":[[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,"Red"],[null,null,null,null,null,"Blue"],[null,null,null,null,null,"Red"],[null,null,null,null,null,null],[null,null,null,null,null,null]]},"turn":"Blue","history":{"moves":[[4,"Red"],[3,"Blue"],[2,"Red"]]}}
